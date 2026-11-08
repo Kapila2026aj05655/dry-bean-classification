@@ -42,8 +42,10 @@ if uploaded_file is None:
     st.info("👈 Upload test_data.csv in the sidebar to get started.")
 else:
     data = pd.read_csv(uploaded_file)
-    st.write("Rows:", data.shape[0], " Columns:", data.shape[1])
-    st.dataframe(data.head())
+
+    # Data preview hidden in a collapsible box
+    with st.expander(f"Preview uploaded data ({data.shape[0]} rows, {data.shape[1]} columns)"):
+        st.dataframe(data.head())
 
     # Separate features and target, load the chosen model, predict
     X_test = data.drop(columns=["Class"])
@@ -68,17 +70,21 @@ else:
     for col, (metric, value) in zip(cols, scores.items()):
         col.metric(metric, f"{value:.4f}")
 
-    # Confusion matrix and classification report side by side
-    left, right = st.columns(2)
+    st.divider()
 
-    with left:
-        st.subheader("Confusion matrix")
-        fig, ax = plt.subplots(figsize=(6, 5))
-        ConfusionMatrixDisplay.from_predictions(
-            y_test, y_pred, ax=ax, cmap="Greens", xticks_rotation=45, colorbar=False)
-        st.pyplot(fig)
+    # Confusion matrix and classification report in separate tabs
+    tab1, tab2 = st.tabs(["📊 Confusion matrix", "📋 Classification report"])
 
-    with right:
-        st.subheader("Classification report")
+    with tab1:
+        plot_col, _ = st.columns([3, 2])
+        with plot_col:
+            fig, ax = plt.subplots(figsize=(8, 6))
+            ConfusionMatrixDisplay.from_predictions(
+                y_test, y_pred, ax=ax, cmap="Greens", xticks_rotation=45, colorbar=False)
+            ax.set_title(f"{model_name}: actual vs predicted")
+            fig.tight_layout()
+            st.pyplot(fig)
+
+    with tab2:
         report = classification_report(y_test, y_pred, output_dict=True)
-        st.dataframe(pd.DataFrame(report).transpose().round(4))
+        st.dataframe(pd.DataFrame(report).transpose().round(3))
